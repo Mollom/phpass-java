@@ -46,6 +46,14 @@ public class PasswordHasher {
    * @return If the password matches the hash.
    */
   public boolean isMatch(String password, String storedHash) {
+    // Support updated drupal hashes here by first md5 hashing the input
+    // if it begins with a U - this was done often during upgrades of 
+    // Drupal 5 after md5 hashing was dropped by drupal in favor of sha-512
+    if(storedHash.startsWith("U")) {
+      password = md5(password);
+      // We also need to lop off the U from the sha-512 stored hash
+      storedHash = storedHash.substring(1,storedHash.length());
+    }
     // The first 12 digits of the hash is used to modify the encryption.
     String setting = storedHash.substring(0, 12);
     return storedHash.equals(encrypt(password, setting));
@@ -198,5 +206,21 @@ public class PasswordHasher {
    */
   private int unsignedByteToSignedInt(int value) {
     return value & 0xFF;
+  }
+
+  public static String md5( String input ) {
+    try {
+        java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+        byte[] array = md.digest(input.getBytes("UTF-8"));
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < array.length; i++) {
+            sb.append(String.format("%02x", array[i]));
+        }
+        return sb.toString();
+    } catch (java.security.NoSuchAlgorithmException nse) {
+      return null;
+    } catch (java.io.UnsupportedEncodingException uee) {
+      return null;            
+    }
   }
 }
